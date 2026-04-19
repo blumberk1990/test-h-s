@@ -11,10 +11,11 @@ fi
 echo "Target's Gateway: $gateway"
 
 # Copy invoke session
-cp /bin/invoke_session /etc/init.d/invoke_session
+#cp /bin/invoke_session /etc/init.d/invoke_session
 
 # Obtain target IP and Hostname
-ip_addr=$(ifconfig `ip route get $gateway | cut -d ' ' -f3` | grep 'inet addr' |awk -F: '{split($2,a," "); print a[1] }')
+# ip_addr=$(ifconfig `ip route get $gateway | cut -d ' ' -f3` | grep 'inet addr' |awk -F: '{split($2,a," "); print a[1] }')
+ip_addr=$(ip -4 addr show scope global | awk '/inet / {print $2}' | cut -d/ -f1 | head -n1)
 hostname=$(cat /etc/hostname)
 
 # Set the PATH to use the LAVA api
@@ -38,7 +39,7 @@ echo ""
 echo ""
 
 cat <<EOF > ~/.bash_logout
-if [ $(who |egrep 'pts\/[0-9]+' |wc -l) -eq 1 ]; then
+if [ $(who |grep -E 'pts/[0-9]+' |wc -l) -eq 1 ]; then
     lava-test-case hacking-stopped-logout --result pass
     stop_hacking
 fi
@@ -52,7 +53,7 @@ STARTED=false
 TERMINATED=false
 echo "Hacking session active..."
 lava-test-case hacking-session-active --result pass
-tail -f /var/log/syslog &
+tail -f /var/log/messages &
 echo $! > /run/hacking/tail.pid
 while [ -f /run/hacking/hacking.pid ]
 do

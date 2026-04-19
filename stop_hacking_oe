@@ -1,4 +1,35 @@
 #!/bin/sh
 rm /run/hacking/hacking.pid
 rm ~/.ssh/authorized_keys
-/etc/init.d/sshd stop
+if command -v systemctl >/dev/null 2>&1; then
+    if systemctl list-unit-files | grep -q '^sshd\.socket'; then
+        systemctl stop sshd.socket
+        RET=$?
+    elif systemctl list-unit-files | grep -q '^sshd\.service'; then
+        systemctl stop sshd.service
+        RET=$?
+    elif systemctl list-unit-files | grep -q '^ssh\.service'; then
+        systemctl stop ssh.service
+        RET=$?
+    elif [ -x /etc/init.d/sshd ]; then
+        /etc/init.d/sshd stop
+        RET=$?
+    elif [ -x /etc/init.d/ssh ]; then
+        /etc/init.d/ssh stop
+        RET=$?
+    fi
+elif [ -x /etc/init.d/sshd ]; then
+    /etc/init.d/sshd stop
+    RET=$?
+elif [ -x /etc/init.d/ssh ]; then
+    /etc/init.d/ssh stop
+    RET=$?
+fi
+
+if [ "$RET" -eq 0 ]; then
+    lava-test-case sshd-ready --result pass
+    echo "sshd stoped"
+else
+    lava-test-case sshd-ready --result fail
+    echo "sshd stoped"
+fi
